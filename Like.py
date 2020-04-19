@@ -62,8 +62,14 @@ def get_list_id(owner_id):
         'album_id': 'profile',
         'photo_sizes': 0
     }
-    list_items = requests.get('https://api.vk.com/method/photos.get', params=payload).json()['response']['items']
-    return list_items
+    list_items = requests.get(
+        'https://api.vk.com/method/photos.get',
+        params=payload
+    ).json()['response']['items']
+    list_id_items = []
+    for i in list_items:
+        list_id_items.append(i['id'])
+    return list_id_items
 
 
 def who_likes(owner_id, item_id):
@@ -75,17 +81,42 @@ def who_likes(owner_id, item_id):
         'item_id': item_id,
         'extended': 1,
     }
-    likes_list_of_photo_profile = requests.get('https://api.vk.com/method/likes.getList', params=payload).json()['response']['items']
+    # print(requests.get('https://api.vk.com/method/likes.getList', params=payload).json())
+    likes_list_of_photo_profile = requests.get(
+        'https://api.vk.com/method/likes.getList',
+        params=payload
+    ).json()['response']['items']
     return likes_list_of_photo_profile
 
 
-def count_likes(list_person_who_likes):
-    pass
+def count_likes(list_person_who_likes, res):
+    for person_like in list_person_who_likes:
+        res_item = list(filter(lambda person: person['id'] == person_like['id'], res))
+        if res_item:
+            res_item[0]['count'] += 1
+        else:
+            res.append(
+                {
+                    'id': person_like['id'],
+                    'first name': person_like['first_name'],
+                    'last name': person_like['last_name'],
+                    'count': 1,
+                }
+            )
+
+    return res
+
 
 if __name__ == '__main__':
-    id = get_user('id108865708').json()['response'][0]['id']
-    print(get_list_id(id))
-    print(who_likes(id, 327992496))
-
-
+    """
+    This script create a list, which show how many likes you get from each person
+    """
+    user_ids = input("Enter user_ids. For example we have url of home page https://vk.com/id195168265, id195168265 is user_ids\n" )
+    id = get_user(user_ids).json()['response'][0]['id']
+    list_id = get_list_id(id)
+    res = []
+    for i in list_id:
+        list_peson_like = who_likes(id, i)
+        res = count_likes(list_peson_like, res)
+    print(sorted(res, key=lambda dict: dict['count'], reverse=True))
 
